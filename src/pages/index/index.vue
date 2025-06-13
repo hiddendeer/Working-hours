@@ -183,6 +183,44 @@ const updateTime = () => {
   sessionStartTime.value = now
 }
 
+// 处理包含午休时间的工作时间计算
+const updateTimeWithLunchBreak = () => {
+  if (!sessionStartTime.value) return
+
+  const now = Date.now()
+  const startTime = new Date(sessionStartTime.value)
+  const endTime = new Date(now)
+  
+  // 计算总的时间差（秒）
+  let totalSeconds = Math.floor((now - sessionStartTime.value) / 1000)
+  
+  // 检查是否跨越了午休时间（12:00-13:30）
+  const lunchStart = new Date(startTime)
+  lunchStart.setHours(LUNCH_START_TIME.hour, LUNCH_START_TIME.minute, 0, 0)
+  
+  const lunchEnd = new Date(startTime)
+  lunchEnd.setHours(LUNCH_END_TIME.hour, LUNCH_END_TIME.minute, 0, 0)
+  
+  // 如果时间段跨越了午休时间，需要扣除午休时间
+  if (startTime < lunchEnd && endTime > lunchStart) {
+    const actualLunchStart = startTime < lunchStart ? lunchStart : startTime
+    const actualLunchEnd = endTime > lunchEnd ? lunchEnd : endTime
+    
+    if (actualLunchEnd > actualLunchStart) {
+      const lunchSeconds = Math.floor((actualLunchEnd.getTime() - actualLunchStart.getTime()) / 1000)
+      totalSeconds -= lunchSeconds
+      console.log(`扣除午休时间 ${lunchSeconds} 秒`)
+    }
+  }
+  
+  // 只有正数才累加到工作时间
+  if (totalSeconds > 0) {
+    workSeconds.value += totalSeconds
+  }
+  
+  sessionStartTime.value = now
+}
+
 // 状态转换函数
 const startSession = (newState: AppState) => {
   updateTime() // 保存当前会话时间
@@ -246,11 +284,26 @@ const loadState = () => {
     commuteSeconds.value = uni.getStorageSync(STORAGE_KEYS.COMMUTE_TIME) || 0
     const savedStartTime = uni.getStorageSync(STORAGE_KEYS.START_TIME) || 0
 
-    // 恢复中断的会话
+    // 恢复中断的会话，需要处理午休时间
     if (savedStartTime > 0 && ['WORKING', 'COMMUTING_TO_WORK', 'COMMUTING_HOME'].includes(appState.value)) {
       sessionStartTime.value = savedStartTime
-      updateTime() // 补充离线时间
+      
+      // 如果是工作状态，需要扣除午休时间
+      if (appState.value === 'WORKING') {
+        updateTimeWithLunchBreak() // 使用新的午休时间处理函数
+      } else {
+        updateTime() // 通勤时间正常补充
+      }
+      
       sessionStartTime.value = Date.now() // 重新开始计时
+    }
+    
+    // 检查当前是否应该在午休状态
+    if (isLunchTime() && appState.value === 'WORKING') {
+      stopSession()
+      appState.value = 'LUNCH_BREAK'
+      saveState()
+      console.log('恢复时检测到午休时间，切换到午休模式')
     }
   } catch (error) {
     console.error('加载状态失败:', error)
@@ -264,6 +317,16 @@ const clearStorage = () => {
   } catch (error) {
     console.error('清理存储失败:', error)
   }
+}
+
+// 检查是否在午休时间内
+const isLunchTime = () => {
+  const now = new Date()
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  const lunchStartMinutes = LUNCH_START_TIME.hour * 60 + LUNCH_START_TIME.minute
+  const lunchEndMinutes = LUNCH_END_TIME.hour * 60 + LUNCH_END_TIME.minute
+  
+  return currentMinutes >= lunchStartMinutes && currentMinutes < lunchEndMinutes
 }
 
 // 自动时间检查
@@ -294,6 +357,14 @@ const checkAutoTriggers = () => {
       startSession('WORKING')
       console.log('自动结束午休，恢复工作')
     }
+  }
+
+  // 如果当前在午休时间内，但状态不是午休，自动切换到午休
+  if (isLunchTime() && appState.value === 'WORKING') {
+    stopSession()
+    appState.value = 'LUNCH_BREAK'
+    saveState()
+    console.log('检测到午休时间，自动进入午休模式')
   }
 }
 
