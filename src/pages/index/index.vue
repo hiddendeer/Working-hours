@@ -134,7 +134,7 @@ const currentAction = computed(() => {
       text: '🚗 开始通勤',
       bgColor: 'bg-gradient-to-r from-emerald-100 to-teal-200',
       textColor: 'text-emerald-800',
-      shadowColor: 'shadow-emerald-400',
+      shadowColor: 'shadow-emerald-100',
       borderColor: 'border-emerald-400',
       handler: handleStartCommute
     },
@@ -142,7 +142,7 @@ const currentAction = computed(() => {
       text: '💼 到达公司',
       bgColor: 'bg-gradient-to-r from-blue-100 to-indigo-200',
       textColor: 'text-blue-800',
-      shadowColor: 'shadow-blue-400',
+      shadowColor: 'shadow-blue-100',
       borderColor: 'border-blue-400',
       handler: handleStartWork
     },
@@ -150,7 +150,7 @@ const currentAction = computed(() => {
       text: '🏠 准备下班',
       bgColor: 'bg-gradient-to-r from-rose-100 to-pink-200',
       textColor: 'text-rose-800',
-      shadowColor: 'shadow-rose-400',
+      shadowColor: 'shadow-rose-100',
       borderColor: 'border-rose-400',
       handler: handleEndWork
     },
@@ -158,7 +158,7 @@ const currentAction = computed(() => {
       text: '🎉 到家啦',
       bgColor: 'bg-gradient-to-r from-orange-100 to-amber-200',
       textColor: 'text-orange-800',
-      shadowColor: 'shadow-orange-400',
+      shadowColor: 'shadow-orange-100',
       borderColor: 'border-orange-400',
       handler: handleEndCommute
     },
